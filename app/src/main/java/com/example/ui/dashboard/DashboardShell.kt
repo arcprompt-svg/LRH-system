@@ -36,6 +36,7 @@ fun DashboardShell(viewModel: MainViewModel) {
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val rotation by animateFloatAsState(
         targetValue = if (isRefreshing) 360f else 0f,
@@ -63,7 +64,7 @@ fun DashboardShell(viewModel: MainViewModel) {
                         viewModel.setPanel(it)
                         scope.launch { drawerState.close() }
                     },
-                    onLogout = { viewModel.logout() }
+                    onLogout = { viewModel.logout(context) }
                 )
             }
         }

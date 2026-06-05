@@ -101,20 +101,21 @@ fun LoginScreen(viewModel: MainViewModel) {
     var email by remember { mutableStateOf("admin@lrh.dev") }
     var password by remember { mutableStateOf("password123") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column {
         Text("เข้าสู่ระบบ", style = MaterialTheme.typography.headlineSmall)
         Text("เลือกวิธีการเข้าสู่ระบบ", style = MaterialTheme.typography.bodyMedium, color = LRH_Text2)
         Spacer(Modifier.height(24.dp))
 
-        // OAuth Mocks
+        // OAuth Mocks & Auth0
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OAuthButton("Auth0", Modifier.weight(1f)) { viewModel.loginWithAuth0(context) }
             OAuthButton("GitHub", Modifier.weight(1f))
-            OAuthButton("Google", Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OAuthButton("Notion", Modifier.weight(1f))
+            OAuthButton("Google", Modifier.weight(1f))
             OAuthButton("Slack", Modifier.weight(1f))
         }
 
@@ -167,9 +168,9 @@ fun LoginScreen(viewModel: MainViewModel) {
 }
 
 @Composable
-fun OAuthButton(label: String, modifier: Modifier = Modifier) {
+fun OAuthButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     OutlinedButton(
-        onClick = {},
+        onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = LRH_Text)
