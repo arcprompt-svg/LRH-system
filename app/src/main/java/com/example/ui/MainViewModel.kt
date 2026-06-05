@@ -66,6 +66,9 @@ class MainViewModel(application: Application, private val repository: AppReposit
     private val _isWsConnected = MutableStateFlow(false)
     val isWsConnected: StateFlow<Boolean> = _isWsConnected
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
         seedInitialData()
         startWsSimulation()
@@ -243,6 +246,19 @@ class MainViewModel(application: Application, private val repository: AppReposit
         viewModelScope.launch {
             repository.deleteTool(tool)
             insertLog("Tool deleted: ${tool.name}", "delete")
+        }
+    }
+
+    fun refreshMetrics() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            insertLog("Manual refresh triggered", "system")
+            insertFeedItem("Refreshing system metrics...", "blue", "system")
+            delay(1000) // Artificial delay for visual feedback
+            simulateUpdate()
+            checkDomains()
+            insertLog("Manual refresh complete", "system")
+            _isRefreshing.value = false
         }
     }
 

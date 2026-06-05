@@ -1,6 +1,7 @@
 package com.example.ui.dashboard
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,8 +33,18 @@ fun DashboardShell(viewModel: MainViewModel) {
     val currentPanel by viewModel.currentPanel.collectAsState()
     val userEmail by viewModel.userEmail.collectAsState()
     val isWsConnected by viewModel.isWsConnected.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    val rotation by animateFloatAsState(
+        targetValue = if (isRefreshing) 360f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "refresh_rotation"
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -78,12 +90,20 @@ fun DashboardShell(viewModel: MainViewModel) {
                         navigationIconContentColor = LRH_Text
                     ),
                     actions = {
+                        IconButton(onClick = { if (!isRefreshing) viewModel.refreshMetrics() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = if (isRefreshing) LRH_Accent else LRH_Text,
+                                modifier = if (isRefreshing) Modifier.graphicsLayer { rotationZ = rotation } else Modifier
+                            )
+                        }
                         if (currentPanel == DashboardPanel.Overview) {
                             Text(
                                 "Live",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = LRH_Accent,
-                                modifier = Modifier.padding(end = 16.dp)
+                                modifier = Modifier.padding(end = 16.dp, start = 8.dp)
                             )
                         }
                     }
