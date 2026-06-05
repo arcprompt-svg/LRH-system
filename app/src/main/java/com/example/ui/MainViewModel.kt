@@ -53,6 +53,14 @@ class MainViewModel(application: Application, private val repository: AppReposit
     )
     private val credentialsManager = SecureCredentialsManager(application, com.auth0.android.authentication.AuthenticationAPIClient(auth0), SharedPreferencesStorage(application))
 
+    init {
+        checkSession()
+        seedInitialData()
+        startWsSimulation()
+        startDomainMonitor()
+        scheduleBackgroundWorkers()
+    }
+
     // Auth State
     private val _authScreen = MutableStateFlow<AuthScreen>(AuthScreen.Login)
     val authScreen: StateFlow<AuthScreen> = _authScreen
@@ -80,14 +88,6 @@ class MainViewModel(application: Application, private val repository: AppReposit
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
-
-    init {
-        checkSession()
-        seedInitialData()
-        startWsSimulation()
-        startDomainMonitor()
-        scheduleBackgroundWorkers()
-    }
 
     private fun scheduleBackgroundWorkers() {
         val constraints = Constraints.Builder()
