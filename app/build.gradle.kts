@@ -19,6 +19,10 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    manifestPlaceholders += mapOf(
+      "auth0Domain" to "@string/com_auth0_domain",
+      "auth0Scheme" to "@string/com_auth0_scheme"
+    )
   }
 
   signingConfigs {

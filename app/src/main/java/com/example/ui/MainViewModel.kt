@@ -5,6 +5,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.*
+import com.auth0.android.Auth0
+import com.auth0.android.authentication.AuthenticationException
+import com.auth0.android.authentication.storage.SecureCredentialsManager
+import com.auth0.android.authentication.storage.SharedPreferencesStorage
+import com.auth0.android.callback.Callback
+import com.auth0.android.provider.WebAuthProvider
+import com.auth0.android.result.Credentials
 import com.example.data.local.AppDatabase
 import com.example.data.model.*
 import com.example.data.repository.AppRepository
@@ -40,6 +47,11 @@ sealed class DashboardPanel {
 class MainViewModel(application: Application, private val repository: AppRepository) : AndroidViewModel(application) {
 
     private val workManager = WorkManager.getInstance(application)
+    private val auth0: Auth0 = Auth0(
+        application.getString(com.example.R.string.com_auth0_client_id),
+        application.getString(com.example.R.string.com_auth0_domain)
+    )
+    private val credentialsManager = SecureCredentialsManager(application, com.auth0.android.authentication.AuthenticationAPIClient(auth0), SharedPreferencesStorage(application))
 
     // Auth State
     private val _authScreen = MutableStateFlow<AuthScreen>(AuthScreen.Login)
@@ -70,6 +82,7 @@ class MainViewModel(application: Application, private val repository: AppReposit
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     init {
+        checkSession()
         seedInitialData()
         startWsSimulation()
         startDomainMonitor()
@@ -193,6 +206,22 @@ class MainViewModel(application: Application, private val repository: AppReposit
         }
     }
 
+    private fun checkSession() {
+        if (credentialsManager.hasValidCredentials()) {
+            viewModelScope.launch {
+                try {
+                    val credentials = credentialsManager.awaitCredentials()
+                    val email = credentials.user?.email ?: "auth0_user@example.com"
+                    _userEmail.value = email
+                    _authScreen.value = AuthScreen.Authenticated
+                    insertLog("Session restored via Auth0: $email", "auth")
+                } catch (e: Exception) {
+                    insertLog("Failed to restore session: ${e.message}", "auth")
+                }
+            }
+        }
+    }
+
     // Actions
     fun login(email: String) {
         _userEmail.value = email
@@ -218,8 +247,52 @@ class MainViewModel(application: Application, private val repository: AppReposit
         }
     }
 
-    fun logout() {
-        _authScreen.value = AuthScreen.Login
+    fun logout(context: android.content.Context) {
+        WebAuthProvider.logout(auth0)
+            .withScheme(context.getString(com.example.R.string.com_auth0_scheme))
+            .start(context, object : Callback<Void?, AuthenticationException> {
+                override fun onSuccess(result: Void?) {
+                    viewModelScope.launch {
+                        credentialsManager.clearCredentials()
+                        _userEmail.value = ""
+                        _authScreen.value = AuthScreen.Login
+                        insertLog("Logged out via Auth0", "auth")
+                        insertFeedItem("Logged out successfully", "blue", "auth")
+                    }
+                }
+
+                override fun onFailure(error: AuthenticationException) {
+                    viewModelScope.launch {
+                        insertLog("Auth0 Logout Failed: ${error.message}", "auth")
+                    }
+                }
+            })
+    }
+
+    fun loginWithAuth0(context: android.content.Context) {
+        WebAuthProvider.login(auth0)
+            .withScheme(context.getString(com.example.R.string.com_auth0_scheme))
+            .start(context, object : Callback<Credentials, AuthenticationException> {
+                override fun onFailure(error: AuthenticationException) {
+                    viewModelScope.launch {
+                        insertLog("Auth0 Login Failed: ${error.message}", "auth")
+                        insertFeedItem("Auth0 login failed", "red", "auth")
+                    }
+                }
+
+                override fun onSuccess(result: Credentials) {
+                    viewModelScope.launch {
+                        credentialsManager.saveCredentials(result)
+                        val email = result.user?.email ?: "auth0_user@example.com"
+                        _userEmail.value = email
+                        _authScreen.value = AuthScreen.Success
+                        delay(1500)
+                        _authScreen.value = AuthScreen.Authenticated
+                        insertLog("User authenticated via Auth0: $email", "auth")
+                        insertFeedItem("Login successful via Auth0", "green", "auth")
+                    }
+                }
+            })
     }
 
     fun setPanel(panel: DashboardPanel) {
