@@ -1,15 +1,20 @@
 package com.example.ui
 
+import android.app.Application
 import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.*
+import com.example.data.local.AppDatabase
 import com.example.data.model.*
 import com.example.data.repository.AppRepository
+import com.example.worker.DomainCheckWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.concurrent.TimeUnit
 
 sealed class AuthScreen {
     object Login : AuthScreen()
@@ -26,12 +31,15 @@ sealed class DashboardPanel {
     object Integrations : DashboardPanel()
     object Update : DashboardPanel()
     object DomainMonitor : DashboardPanel()
+    object Workers : DashboardPanel()
     object Templates : DashboardPanel()
     object ApiConfig : DashboardPanel()
     object AuditLog : DashboardPanel()
 }
 
-class MainViewModel(private val repository: AppRepository) : ViewModel() {
+class MainViewModel(application: Application, private val repository: AppRepository) : AndroidViewModel(application) {
+
+    private val workManager = WorkManager.getInstance(application)
 
     // Auth State
     private val _authScreen = MutableStateFlow<AuthScreen>(AuthScreen.Login)
@@ -62,6 +70,28 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
         seedInitialData()
         startWsSimulation()
         startDomainMonitor()
+        scheduleBackgroundWorkers()
+    }
+
+    private fun scheduleBackgroundWorkers() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val domainWorkRequest = PeriodicWorkRequestBuilder<DomainCheckWorker>(1, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .addTag("domain_check")
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            "DomainCheckWork",
+            ExistingPeriodicWorkPolicy.KEEP,
+            domainWorkRequest
+        )
+        
+        viewModelScope.launch {
+            insertLog("Scheduled Background Worker: DomainCheck (1hr interval)", "worker")
+        }
     }
 
     private fun seedInitialData() {

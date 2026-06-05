@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val viewModel: MainViewModel = viewModel(
-                factory = MainViewModelFactory(repository)
+                factory = MainViewModelFactory(application, repository)
             )
             val authState by viewModel.authScreen.collectAsState()
 

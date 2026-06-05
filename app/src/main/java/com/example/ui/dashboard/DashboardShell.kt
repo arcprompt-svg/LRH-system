@@ -105,6 +105,7 @@ fun DashboardShell(viewModel: MainViewModel) {
                         DashboardPanel.Integrations -> IntegrationsPanel(viewModel)
                         DashboardPanel.Update -> UpdatePanel(viewModel)
                         DashboardPanel.DomainMonitor -> DomainPanel(viewModel)
+                        DashboardPanel.Workers -> WorkersPanel(viewModel)
                         DashboardPanel.AuditLog -> LogPanel(viewModel)
                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("Panel Not Implemented: $panel")
@@ -195,6 +196,7 @@ fun SidebarContent(
         NavItem("เครื่องมือ", Icons.Default.Hexagon, currentPanel == DashboardPanel.Tools) { onPanelSelect(DashboardPanel.Tools) }
         NavItem("WS Feed", Icons.AutoMirrored.Filled.Chat, currentPanel == DashboardPanel.Feed) { onPanelSelect(DashboardPanel.Feed) }
         NavItem("Domain Monitor", Icons.Default.Security, currentPanel == DashboardPanel.DomainMonitor) { onPanelSelect(DashboardPanel.DomainMonitor) }
+        NavItem("Cloud Workers", Icons.Default.Bolt, currentPanel == DashboardPanel.Workers) { onPanelSelect(DashboardPanel.Workers) }
 
         Spacer(Modifier.height(16.dp))
         Text("จัดการ", style = MaterialTheme.typography.labelSmall, color = LRH_Text3, modifier = Modifier.padding(start = 8.dp))
@@ -236,6 +238,7 @@ fun getPanelTitle(panel: DashboardPanel): String = when (panel) {
     DashboardPanel.Integrations -> "Integrations"
     DashboardPanel.Update -> "อัปเดตผล"
     DashboardPanel.DomainMonitor -> "Domain Monitor"
+    DashboardPanel.Workers -> "Workers Monitoring"
     DashboardPanel.Templates -> "Templates"
     DashboardPanel.ApiConfig -> "API Config"
     DashboardPanel.AuditLog -> "Audit Log"
